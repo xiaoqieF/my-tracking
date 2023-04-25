@@ -1,0 +1,3 @@
+[submodule "my_centernet"]
+	path = my_centernet
+	url = git@github.com:xiaoqieF/my-centernet.git

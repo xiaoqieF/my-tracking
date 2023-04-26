@@ -2,3 +2,5 @@
 *.avi
 run/
 .vscode
+*/__pycache__
+__pycache__/

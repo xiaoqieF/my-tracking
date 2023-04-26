@@ -7,8 +7,8 @@ import motmetrics as mm
 mm.lap.default_solver = 'lap'
 metrics = list(mm.metrics.motchallenge_metrics)
 
-gt_file = './run/3_gt.txt'
-track_file = './run/3_byte.txt'
+gt_file = './run/2_gt.txt'
+track_file = './run/2_bot.txt'
 
 gt = mm.io.loadtxt(gt_file, fmt='mot16', min_confidence=-1)
 ts = mm.io.loadtxt(track_file, fmt='mot16')

@@ -7,20 +7,20 @@ import os
 import numpy as np
 sys.path.insert(0, './my_centernet')
 
-from bytetrack.byte_tracker import BYTETracker
+from botsort.bot_sort import BoTSORT
 from deep_sort_pytorch.utils.yaml_parser import get_yaml_data
 from my_centernet.networks.centernetplus import CenterNetPlus
 from my_centernet.utils.dataset import LoadVideo
-from my_centernet.utils.utils import time_sync, scale_boxes, xyxy2xywh, load_class_names
+from my_centernet.utils.utils import time_sync, scale_boxes, load_class_names
 from my_centernet.utils.boxes import postprocess, BBoxDecoder
 
 class_name_path = './my_centernet/my_data_label.names'
-bytetrack_config = './bytetrack/configs/bytetrack.yaml'
-video_path = './1.mp4'
+bytetrack_config = './botsort/configs/botsort.yaml'
+video_path = './3.mp4'
 half = True
 save_txt = True
-txt_path = f'./run/{video_path.split("/")[-1].split(".")[0]}_byte.txt'
-show_vid = False
+txt_path = f'./run/{video_path.split("/")[-1].split(".")[0]}_bot.txt'
+show_vid = True
 
 if not os.path.exists(os.path.dirname(txt_path)):
     os.makedirs(os.path.dirname(txt_path))
@@ -66,9 +66,9 @@ def draw_boxes(img, bbox, identities=None, offset=(0, 0)):
     return img
 
 def detect():
-    cfg = get_yaml_data(bytetrack_config)['bytetrack']
+    cfg = get_yaml_data(bytetrack_config)['botsort']
     print(cfg)
-    bytetracker = BYTETracker(cfg['track_thresh'], cfg['match_thresh'], cfg['track_buffer'], cfg['frame_rate'])
+    botsort = BoTSORT()
     device = torch.device('cuda:0')
 
     label_names = load_class_names(class_name_path)
@@ -116,7 +116,7 @@ def detect():
                         n = (det[:, -1] == c).sum()
                         s += '%g %ss, ' % (n, label_names[int(c)])
 
-                    outputs = bytetracker.update(det, im0)
+                    outputs = botsort.update(det, im0)
                     outputs = np.array(outputs)
 
                     if len(outputs) > 0:

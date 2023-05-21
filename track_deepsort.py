@@ -17,9 +17,12 @@ class_name_path = './my_centernet/my_data_label.names'
 deep_sort_config = 'deep_sort_pytorch/configs/deep_sort.yaml'
 video_path = './1.mp4'
 half = True
-save_txt = True
+save_txt = False
 txt_path = f'./run/{video_path.split("/")[-1].split(".")[0]}_deepsort.txt'
 show_vid = False
+write_video = False
+
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
 if not os.path.exists(os.path.dirname(txt_path)):
     os.makedirs(os.path.dirname(txt_path))
@@ -84,13 +87,15 @@ def detect():
     cudnn.benchmark = True  # 加速固定大小图片输入的网络运行
     dataset = LoadVideo(video_path)
 
+    out = cv2.VideoWriter(txt_path.replace('txt', 'mp4'), fourcc, 30, dataset.video_size())
+
     # gpu 先执行一次 inference
     model(torch.zeros(1, 3, 512, 512).to(device).type_as(next(model.parameters())))
-
-    t0 = time.time()
+    fpss = []
 
     with torch.no_grad():
         for frame_idx, (path, img, img0s) in enumerate(dataset):
+            start = time.time()
             img = torch.from_numpy(img).to(device)
             img = img.half() if half else img.float()
             img /= 255.0
@@ -144,13 +149,19 @@ def detect():
                     deepsort.increment_ages()
 
                 # Print time (inference + NMS)
-                print('%sDone. (%.3fs)' % (s, t2 - t1))
+                # print('%sDone. (%.3fs)' % (s, t2 - t1))
 
                 # Stream results
-                if show_vid:
-                    cv2.imshow(path, im0)
-                    if cv2.waitKey(1) == ord('q'):  # q to quit
-                        raise StopIteration
+            if show_vid:
+                cv2.imshow(path, im0)
+                if cv2.waitKey(1) == ord('q'):  # q to quit
+                    raise StopIteration
+            if write_video:
+                out.write(im0)
+            end = time.time()
+            print(f"fps:{1 / (end - start)}")
+            fpss.append(1 / (end - start))
+        print(f'average fps: {sum(fpss) / len(fpss)}')
 
 if __name__ == '__main__':
     detect()

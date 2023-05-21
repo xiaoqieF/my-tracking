@@ -16,11 +16,15 @@ from my_centernet.utils.boxes import postprocess, BBoxDecoder
 
 class_name_path = './my_centernet/my_data_label.names'
 bytetrack_config = './botsort/configs/botsort.yaml'
-video_path = './3.mp4'
+video_path = './5.mp4'
 half = True
-save_txt = True
+save_txt = False
 txt_path = f'./run/{video_path.split("/")[-1].split(".")[0]}_bot.txt'
-show_vid = True
+show_vid = False
+write_video = False
+
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
 
 if not os.path.exists(os.path.dirname(txt_path)):
     os.makedirs(os.path.dirname(txt_path))
@@ -83,10 +87,12 @@ def detect():
     cudnn.benchmark = True  # 加速固定大小图片输入的网络运行
     dataset = LoadVideo(video_path)
 
+    out = cv2.VideoWriter(txt_path.replace('txt', 'mp4'), fourcc, 30, dataset.video_size())
+
     # gpu 先执行一次 inference
     model(torch.zeros(1, 3, 512, 512).to(device).type_as(next(model.parameters())))
 
-    t0 = time.time()
+    fpss = []
 
     with torch.no_grad():
         for frame_idx, (path, img, img0s) in enumerate(dataset):
@@ -99,7 +105,7 @@ def detect():
             
             t1 = time_sync()
             output = model(img)
-            output = BBoxDecoder.decode_bbox(output[0], output[1], output[2], confidence=0.4)
+            output = BBoxDecoder.decode_bbox(output[0], output[1], output[2], confidence=0.2)
             output = postprocess(output, classes=[0])
 
             t2 = time_sync()
@@ -138,15 +144,20 @@ def detect():
                                     f.write(('%g ' * 10 + '\n') % (frame_idx, identity, bbox_top,
                                                                 bbox_left, bbox_w, bbox_h, -1, -1, -1, -1))  # label format
                 # Print time (inference + NMS)
-                print('%sDone. (%.3fs)' % (s, t2 - t1))
+                # print('%sDone. (%.3fs)' % (s, t2 - t1))
 
                 # Stream results
-                if show_vid:
-                    cv2.imshow(path, im0)
-                    if cv2.waitKey(1) == ord('q'):  # q to quit
-                        raise StopIteration
-                end = time.time()
-                print(f"fps:{1 / (end - start)}")
+            if show_vid:
+                cv2.imshow(path, im0)
+                if cv2.waitKey(1) == ord('q'):  # q to quit
+                    raise StopIteration
+            if write_video:
+                out.write(im0)  
+            end = time.time()
+            print(f"fps:{1 / (end - start)}")
+            fpss.append(1 / (end - start))
+        print(f'average fps: {sum(fpss) / len(fpss)}')
+        out.release()
 
 if __name__ == '__main__':
     detect()

@@ -4,3 +4,4 @@ run/
 .vscode
 */__pycache__
 __pycache__/
+bytetrack/__pycache__/*
